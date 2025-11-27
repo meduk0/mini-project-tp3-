@@ -28,7 +28,8 @@ mini_project_tp3/
 ├── .env                   # Environment variables
 └── README.md              # This file
 ```
-
+## Preview 
+![alt text](preview.png)
 ## API Endpoints
 
 | Method | Endpoint        | Description            | Request Body                              |
