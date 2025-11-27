@@ -1,0 +1,64 @@
+services:
+  # MariaDB Database
+  mariadb:
+    image: mariadb:latest
+    container_name: user-management-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend: # use the dockerfile inside the backend directory 
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: user-management-backend
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      DB_HOST: mariadb
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+
+  # Frontend (Nginx serving static files)
+  frontend:
+    image: nginx:alpine
+    container_name: user-management-frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+    networks:
+      - app-network
+    depends_on:
+      - backend
+
+volumes:
+  mariadb_data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
